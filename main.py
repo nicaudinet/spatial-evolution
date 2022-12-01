@@ -1,6 +1,7 @@
 from itertools import repeat
 from math import log2
 import numpy as np
+import random
 
 C = True # Cooperate
 D = False # Defect
@@ -76,7 +77,7 @@ def play_turn(strat, history, mistake):
     """ Play a single turn for a single player with some probability of a
     mistake happening """
     action = strat[find_index(history)]
-    if np.random.uniform() < mistake:
+    if random.random() < mistake:
         return not(action)
     else:
         return action
@@ -118,7 +119,7 @@ def play_all(population, mistake, rounds):
             elif score2 > score1:
                 winners.append(strat2)
             else:
-                if np.random.uniform() < 0.5:
+                if random.random() < 0.5:
                     winners.append(strat1)
                 else:
                     winners.append(strat2)
@@ -143,7 +144,7 @@ def duplicate(gene):
 
 def point_mutation(gene, mut):
     for i, b in enumerate(gene):
-        if np.random.uniform() < mut:
+        if random.random() < mut:
             gene[i] = not(b)
     return gene
 
@@ -152,15 +153,15 @@ def split(gene):
         return gene
     else:
         half = len(gene) // 2
-        return gene[:half] if np.random.uniform() < 0.5 else gene[half:]
+        return gene[:half] if random.random() < 0.5 else gene[half:]
 
 def mutate(population, mut):
     new_population = []
     for strat in population:
-        if np.random.uniform() < mut:
+        if random.random() < mut:
             strat = duplicate(strat)
         strat = point_mutation(strat, mut)
-        if np.random.uniform() < mut:
+        if random.random() < mut:
             strat = split(strat)
         new_population.append(strat)
     return new_population
@@ -168,7 +169,7 @@ def mutate(population, mut):
 if __name__ == "__main__":
 
     init_group_size = 25
-    generations = 10
+    generations = 1
 
     rounds = 10
     mistake = 0.01
