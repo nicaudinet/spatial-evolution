@@ -82,8 +82,8 @@ def play_game(strat1, strat2, mistake, rounds):
     # Create random initial history
     history = History()
     for i in range(max(m1, m2)):
-        a1 = np.random.choice([True, False])
-        a2 = np.random.choice([True, False])
+        a1 = random.choice([True, False])
+        a2 = random.choice([True, False])
         history.put(a1,a2)
     # Play the game out
     for r in range(rounds):
