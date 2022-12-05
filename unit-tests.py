@@ -4,69 +4,142 @@ from main import *
 
 class Test(unittest.TestCase):
 
-    def test_init_population(self):
-        result = init_population(1)
-        expected = [[D,D],[C,D],[D,C],[C,C]]
-        self.assertEqual(result.sort(), expected.sort())
-
-    def test_duplicate(self):
-        strat = [C,D]
-        self.assertEqual(duplicate(strat), [C,D,C,D])
+    def test_strat_to_string(self):
+        strat = {
+            'cc': 'c',
+            'dc': 'd',
+            'cd': 'd',
+            'dd': 'd',
+        }
+        expected = 'cddd'
+        self.assertEqual(strat_to_string(strat), expected)
 
     def test_split(self):
-        strat = [C,D]
-        self.assertEqual(split(strat), strat)
-        strat = [C,C,D,D]
+        strat1 = {
+            'c': C,
+            'd': D,
+        }
+        self.assertEqual(split(strat1), strat1)
+        strat2 = {
+            'cc': 'c',
+            'dc': 'd',
+            'cd': 'd',
+            'dd': 'd',
+        }
+        expected2_1 = {
+            'c': 'c',
+            'd': 'd',
+        }
+        expected2_2 = {
+            'c': 'd',
+            'd': 'd',
+        }
         np.random.seed(0)
-        self.assertEqual(split(strat), [D,D])
+        self.assertEqual(split(strat2), expected2_1)
+        np.random.seed(10)
+        self.assertEqual(split(strat2), expected2_2)
 
     def test_point_mutation(self):
-        strat = [C,D,C,C,D,D,C,D]
-        self.assertEqual(point_mutation(strat, mut=0), [C,D,C,C,D,D,C,D])
-        self.assertEqual(point_mutation(strat, mut=1), [D,C,D,D,C,C,D,C])
-        np.random.seed(0)
-        self.assertEqual(point_mutation(strat, mut=0.5), [D,C,D,D,D,C,C,C])
+        strat = {
+            'cc': 'c',
+            'dc': 'd',
+            'cd': 'd',
+            'dd': 'd',
+        }
         
-    def test_find_index(self):
-        self.assertEqual(find_index([D]), 0)
-        self.assertEqual(find_index([C]), 1)
-        self.assertEqual(find_index([D,D]), 0)
-        self.assertEqual(find_index([C,D]), 1)
-        self.assertEqual(find_index([D,C]), 2)
-        self.assertEqual(find_index([C,C]), 3)
-        self.assertEqual(find_index([D,D,D]), 0)
+        self.assertEqual(point_mutation(strat, mut=0), strat)
+        expected1 = {
+            'cc': 'd',
+            'dc': 'c',
+            'cd': 'c',
+            'dd': 'c',
+        }
+        self.assertEqual(point_mutation(strat, mut=1), expected1)
+        expected2 = {
+            'cc': 'd',
+            'dc': 'c',
+            'cd': 'd',
+            'dd': 'd',
+        }
+        np.random.seed(0)
+        random.seed(0)
+        self.assertEqual(point_mutation(strat, mut=0.5), expected2)
+
+    def test_duplicate(self):
+        strat = {
+            'cc': 'c',
+            'dc': 'd',
+            'cd': 'd',
+            'dd': 'c',
+        }
+        expected = {
+            'ccc': 'c',
+            'dcc': 'c',
+            'cdc': 'd',
+            'ddc': 'd',
+            'ccd': 'd',
+            'dcd': 'd',
+            'cdd': 'c',
+            'ddd': 'c',
+        }
+        self.assertEqual(duplicate(strat), expected)
+
+    def test_init_population(self):
+        result = init_population(1)
+
+        tft = {
+            'c': C,
+            'd': D,
+        }
+        all_coop = {
+            'c': C,
+            'd': C,
+        }
+        all_def = {
+            'c': D,
+            'd': D,
+        }
+        anti_tft = {
+            'c': D,
+            'd': C,
+        }
+        expected = [tft,all_coop,anti_tft, all_def]
+        self.assertCountEqual(result, expected)
 
     def test_play_turn(self):
-        strat = [D,C]
-        history = [C]
+        strat = {
+            'ccc': 'c',
+            'dcc': 'c',
+            'cdc': 'd',
+            'ddc': 'd',
+            'ccd': 'd',
+            'dcd': 'd',
+            'cdd': 'c',
+            'ddd': 'c',
+        }
+        history = 'cdd'
         self.assertEqual(play_turn(strat, history, 0), C)
         self.assertEqual(play_turn(strat, history, 1), D)
         np.random.seed(0)
+        random.seed(0)
         self.assertEqual(play_turn(strat, history, 0.5), C)
 
-    def test_eval(self):
+    def test_update_score(self):
         history = History()
         history.put(C,C)
-        self.assertEqual(history.eval(), (3,3))
+        self.assertEqual((history.score1, history.score2), (3,3))
         history.put(D,D)
-        self.assertEqual(history.eval(), (4,4))
+        self.assertEqual((history.score1, history.score2), (4,4))
         history.put(C,D)
-        self.assertEqual(history.eval(), (4,9))
+        self.assertEqual((history.score1, history.score2), (4,9))
         history.put(D,C)
-        self.assertEqual(history.eval(), (9,9))
+        self.assertEqual((history.score1, history.score2), (9,9))
 
-    def test_put_show(self):
-        history = History()
-        history.put(C,D)
-        self.assertEqual(history.show(1,P1), [D])
-        self.assertEqual(history.show(1,P2), [C])
-        self.assertEqual(history.show(2,P1), [D,C])
-        self.assertEqual(history.show(2,P2), [C,D])
-        history.put(C,D)
-        self.assertEqual(history.show(2,P1), [D,C])
-        self.assertEqual(history.show(2,P2), [C,D])
-        self.assertEqual(history.show(4,P1), [D,C,D,C])
-        self.assertEqual(history.show(4,P2), [C,D,C,D])
+    def test_not_action(self):
+        c = 'c'
+        d = 'd'
+        self.assertEqual(not_action(c), d)
+        self.assertEqual(not_action(d), c)
 
 if __name__ == "__main__":
     unittest.main()
