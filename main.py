@@ -194,23 +194,30 @@ def not_action(action):
     """ Returns the opposite action """
     return 'c' if action == 'd' else 'd'
 
+def print_population(population):
+    pop_strs = [strat_to_string(strat) for strat in population]
+    strats, counts = np.unique(pop_strs, return_counts=True)
+    print("Strategies: ", strats, counts)
+
 if __name__ == "__main__":
 
     init_group_size = 25
-    generations = 5
+    generations = 10
 
-    rounds = 10
+    rounds = 100
     mistake = 0.01
     mut = 0.01
 
     population = init_population(init_group_size)
+
+    print_population(population)
 
     for i in range(generations):
         start_time = time.time()
         print("Generation", i)
         population = select(population, mistake, rounds)
         population = mutate(population, mut)
-
+        print_population(population)
         dt = time.time() - start_time
         print(f"⏱️: {dt:2f} [s]")
 
