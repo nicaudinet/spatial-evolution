@@ -117,6 +117,48 @@ def play_all(population, mistake, rounds):
                     winners.append(strat2)
     return winners
 
+# Lattice play
+# ------------
+def play_neighbors(lat, i, j, mistake, rounds):
+    n = len(lat)
+    up    = n - 1 if i == 0     else i - 1
+    down  = 0     if i == n - 1 else i + 1
+    left  = n - 1 if j == 0     else j - 1
+    right = 0     if j == n - 1 else j + 1
+
+    # Strats
+    my_strat = lat[i][j]
+    up_neighba, down_neighba, left_neighba, right_neighba = lat[up][j], lat[down][j], lat[i][left], lat[i][right]
+    
+    # Result of playing neighbas
+    [payoff_up, _], [payoff_down, _], [payoff_left, _], [payoff_right, _] = play_game(my_strat, up_neighba, mistake, rounds).eval(), play_game(my_strat, down_neighba, mistake, rounds).eval(), play_game(my_strat, left_neighba, mistake, rounds).eval(), play_game(my_strat, right_neighba, mistake, rounds).eval()
+    print(f"my_strat: {my_strat}; up,down,left,right respectively: \n", up_neighba, down_neighba, left_neighba, right_neighba)
+    print("my payoff against up,down,left,right respectively:\n", payoff_up, payoff_down, payoff_left, payoff_right)
+    return payoff_up + payoff_down + payoff_left + payoff_right
+
+def play_lattice(lat, mistake, rounds):
+    n = len(lat)
+    total_score = []
+    for i in range(n):
+        total_score.append([])
+        for j in range(n):
+            total_score[i].append(play_neighbors(lat, i, j, mistake, rounds))
+    return total_score
+
+
+strategy_pool = [ [D,C] , [C,C], [D,D], [C,D] ]
+
+def init_square_lattice(N):
+    lattice = []
+    for i in range(N):
+        lattice.append([])
+        for _ in range(N):
+            ind = 0 #np.random.choice(range(len(strategy_pool)))
+            strat = strategy_pool[ind]
+            lattice[i].append(strat)
+    return lattice
+# ------------
+
 def init_population(N):
     """ Initialize the population with 25% of each of the four basic strategies.
     Final population will have size 4*N """
@@ -172,5 +214,7 @@ if __name__ == "__main__":
         print("Generation", i)
         population = select(population, mistake, rounds)
         population = mutate(population, mut)
+
+    print(play_lattice(init_square_lattice(3), 0, 10))
 
     print("Fin")
