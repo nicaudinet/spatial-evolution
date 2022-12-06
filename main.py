@@ -68,7 +68,7 @@ def play_turn(strat, history, mistake):
     else:
         return action
 
-def play_game(strat1, strat2, mistake, rounds):
+def play_game(strat1, strat2, initial1, initial2, mistake, rounds):
     """ Play a game between two players from start to finish """
     # Find the largest memory m
     m1 = max([len(k) for k in strat1.keys()])
@@ -77,8 +77,8 @@ def play_game(strat1, strat2, mistake, rounds):
     # Create random initial history
     history = History()
     for i in range(max(m1, m2)):
-        a1 = random.choice([C, D])
-        a2 = random.choice([C, D])
+        a1 = initial1
+        a2 = initial2
         history.put(a1,a2)
     # Play the game out
     for r in range(rounds):
@@ -99,7 +99,9 @@ def play_all(population, mistake, rounds):
         for j in range(n):
             strat1 = population[i]
             strat2 = population[j]
-            history = play_game(strat1, strat2, mistake, rounds)
+            initial1 = population[i]['initial']
+            initial2 = population[j]['initial']
+            history = play_game(strat1['strat'], strat2['strat'], initial1, initial2, mistake, rounds)
             if history.score1 > history.score2:
                 winners.append(strat1)
             elif history.score2 > history.score1:
@@ -111,26 +113,65 @@ def play_all(population, mistake, rounds):
                     winners.append(strat2)
     return winners
 
+# Lattice play
+# ------------
+def play_neighbors(lat, i, j, mistake, rounds):
+    n = len(lat)
+    up    = n - 1 if i == 0     else i - 1
+    down  = 0     if i == n - 1 else i + 1
+    left  = n - 1 if j == 0     else j - 1
+    right = 0     if j == n - 1 else j + 1
+
+    # Strats
+    my_strat = lat[i][j]
+    up_neighba, down_neighba, left_neighba, right_neighba = lat[up][j], lat[down][j], lat[i][left], lat[i][right]
+    
+    # Result of playing neighbas
+    payoff_up, payoff_down, payoff_left, payoff_right = play_game(my_strat['strat'], up_neighba['strat'], my_strat['initial'], up_neighba['initial'],  mistake, rounds).score1, play_game(my_strat['strat'], down_neighba['strat'], my_strat['initial'], down_neighba['initial'],  mistake, rounds).score1, play_game(my_strat['strat'], left_neighba['strat'], my_strat['initial'], left_neighba['initial'],  mistake, rounds).score1, play_game(my_strat['strat'], right_neighba['strat'], my_strat['initial'], right_neighba['initial'],  mistake, rounds).score1
+    print(f"my_strat: {my_strat}; up,down,left,right respectively: \n", up_neighba, down_neighba, left_neighba, right_neighba)
+    print("my payoff against up,down,left,right respectively:\n", payoff_up, payoff_down, payoff_left, payoff_right)
+    return payoff_up + payoff_down + payoff_left + payoff_right
+
+def play_lattice(lat, mistake, rounds):
+    n = len(lat)
+    total_score = []
+    for i in range(n):
+        total_score.append([])
+        for j in range(n):
+            total_score[i].append(play_neighbors(lat, i, j, mistake, rounds))
+    return total_score
+
+
+strategy_pool = [
+    {'strat': {'c': C,'d': D},
+     'initial': C},
+    {'strat': {'c': C,'d': C},
+     'initial': C},
+    {'strat': {'c': D,'d': D},
+     'initial': C},
+    {'strat': {'c': D,'d': C},
+     'initial': C}
+    ]
+
+def init_square_lattice(N):
+    lattice = []
+    for i in range(N):
+        lattice.append([])
+        for _ in range(N):
+            ind = 0 #np.random.choice(range(len(strategy_pool)))
+            strat = strategy_pool[ind]
+            lattice[i].append(strat)
+    return lattice
+# ------------
+
 def init_population(N):
     """ Initialize the population with 25% of each of the four basic strategies.
     Final population will have size 4*N """
 
-    tft = {
-        'c': C,
-        'd': D,
-    }
-    all_coop = {
-        'c': C,
-        'd': C,
-    }
-    all_def = {
-        'c': D,
-        'd': D,
-    }
-    anti_tft = {
-        'c': D,
-        'd': C,
-    }
+    tft      = strategy_pool[0]
+    all_coop = strategy_pool[1]
+    all_def  = strategy_pool[2]
+    anti_tft = strategy_pool[3]
 
     a = list(repeat(tft, N)) # tit for tat
     b = list(repeat(all_coop, N)) # all cooperate
@@ -166,23 +207,23 @@ def split(strategy: dict) -> dict:
         return strategy
     else:
         new_strat = {}
-        keys = list(strategy.keys())
+        s = strategy
+        keys = list(s.keys())
         start_idx = np.random.randint(0,2)
-
         for key in keys[start_idx::2]:
-            new_strat[key[1:]] = strategy[key]
-
+            new_strat[key[1:]] = s[key]
         return new_strat
 
 def mutate(population, mut):
     new_population = []
-    for strat in population:
+    for gene in population:
+        new_gene = gene
         if random.random() < mut:
-            strat = duplicate(strat)
-        strat = point_mutation(strat, mut)
+            new_gene['strat'] = duplicate(new_gene['strat'])
+        new_gene['strat'] = point_mutation(new_gene['strat'], mut)
         if random.random() < mut:
-            strat = split(strat)
-        new_population.append(strat)
+            new_gene['strat'] = split(new_gene['strat'])
+        new_population.append(new_gene)
     return new_population
 
 def strat_to_string(gene_dict: dict) -> str:
@@ -195,7 +236,7 @@ def not_action(action):
     return 'c' if action == 'd' else 'd'
 
 def print_population(population):
-    pop_strs = [strat_to_string(strat) for strat in population]
+    pop_strs = [strat_to_string(gene['strat']) for gene in population]
     strats, counts = np.unique(pop_strs, return_counts=True)
     print("Strategies: ", strats, counts)
 
@@ -220,5 +261,7 @@ if __name__ == "__main__":
         print_population(population)
         dt = time.time() - start_time
         print(f"⏱️: {dt:2f} [s]")
+
+    print(play_lattice(init_square_lattice(3), 0, 10))
 
     print("🏁 Fin")

@@ -4,6 +4,7 @@ let
     numpy
     pygame
     snakeviz
+    ipython
   ]);
 in
 python-with-my-packages.env
