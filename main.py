@@ -3,6 +3,7 @@ from math import log2
 import numpy as np
 import random
 import time
+import copy
 
 C = 'c' #True # Cooperate
 D = 'd' #False # Defect
@@ -223,12 +224,15 @@ def split(strategy: dict) -> dict:
 def mutate(population, mut):
     new_population = []
     for gene in population:
-        new_gene = gene
+        new_gene = copy.deepcopy(gene)
         if random.random() < mut:
             new_gene['strat'] = duplicate(new_gene['strat'])
-        #FIXME new_gene['strat'] = point_mutation(new_gene['strat'], mut)
+
+        new_gene['strat'] = point_mutation(new_gene['strat'], mut)
+
         if random.random() < mut:
             new_gene['strat'] = split(new_gene['strat'])
+
         new_population.append(new_gene)
     return new_population
 
@@ -244,7 +248,8 @@ def not_action(action):
 def print_population(population):
     pop_strs = [strat_to_string(gene['strat']) for gene in population]
     strats, counts = np.unique(pop_strs, return_counts=True)
-    print("Strategies: ", strats, counts)
+    ind = np.argsort(-counts)
+    print("Strategies: ", strats[ind], counts[ind])
 
 if __name__ == "__main__":
 
