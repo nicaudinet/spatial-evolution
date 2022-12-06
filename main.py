@@ -186,13 +186,19 @@ def select(population, mistake, rounds):
     indexes = np.random.randint(len(winners), size=len(population))
     return [winners[i] for i in indexes]
 
-def duplicate(gene: dict) -> dict:
-    new_gene = {}
-    for key, value in gene.items():
-        new_gene[('c'+key)] = value
-        new_gene[('d'+key)] = value
+def duplicate(gene: dict, max_len) -> dict:
+    m = len(list(gene.keys())[0])
 
-    return new_gene
+    if m < max_len:
+
+        new_gene = {}
+        for key, value in gene.items():
+            new_gene[('c'+key)] = value
+            new_gene[('d'+key)] = value
+
+        return new_gene
+    else: 
+        return gene
 
 def point_mutation(gene, mut):
     for key, b in gene.items():
