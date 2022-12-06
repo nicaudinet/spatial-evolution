@@ -220,7 +220,7 @@ def mutate(population, mut):
         new_gene = gene
         if random.random() < mut:
             new_gene['strat'] = duplicate(new_gene['strat'])
-        new_gene['strat'] = point_mutation(new_gene['strat'], mut)
+        #FIXME new_gene['strat'] = point_mutation(new_gene['strat'], mut)
         if random.random() < mut:
             new_gene['strat'] = split(new_gene['strat'])
         new_population.append(new_gene)

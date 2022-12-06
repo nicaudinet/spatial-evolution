@@ -83,26 +83,43 @@ class Test(unittest.TestCase):
             'ddd': 'c',
         }
         self.assertEqual(duplicate(strat), expected)
+        strat2 = {
+            'ccc': 'd',
+            'dcc': 'c',
+            'cdc': 'd',
+            'ddc': 'd',
+            'ccd': 'd',
+            'dcd': 'c',
+            'cdd': 'd',
+            'ddd': 'c',
+        }
+        expected2 = {
+            'cccc': 'd',
+            'dccc': 'd',
+            'cdcc': 'c',
+            'ddcc': 'c',
+            'ccdc': 'd',
+            'dcdc': 'd',
+            'cddc': 'd',
+            'dddc': 'd',
+            'cccd': 'd',
+            'dccd': 'd',
+            'cdcd': 'c',
+            'ddcd': 'c',
+            'ccdd': 'd',
+            'dcdd': 'd',
+            'cddd': 'c',
+            'dddd': 'c',
+        }
+        self.assertEqual(duplicate(strat2), expected2)
 
     def test_init_population(self):
         result = init_population(1)
 
-        tft = {
-            'c': C,
-            'd': D,
-        }
-        all_coop = {
-            'c': C,
-            'd': C,
-        }
-        all_def = {
-            'c': D,
-            'd': D,
-        }
-        anti_tft = {
-            'c': D,
-            'd': C,
-        }
+        tft = {'strat': {'c': C,'d': D},'initial': C}
+        all_coop = {'strat': {'c': C,'d': C}, 'initial': C}
+        all_def = {'strat': {'c': D,'d': D}, 'initial': C}
+        anti_tft = {'strat': {'c': D,'d': C}, 'initial': C}
         expected = [tft,all_coop,anti_tft, all_def]
         self.assertCountEqual(result, expected)
 
