@@ -5,8 +5,8 @@ import random
 import time
 import copy
 
-C = 'c' #True # Cooperate
-D = 'd' #False # Defect
+C = 'c' # Cooperate
+D = 'd' # Defect
 
 P1 = 0
 P2 = 1
@@ -59,6 +59,13 @@ class History:
             a2 = actions[i+1]
             print(" %s | %s " % (a1,a2))
 
+class Player:
+    def __init__(self, strategy, initial_state):
+        self.score = 0
+        self.memory_size = 1
+        self.strategy = strategy
+        self.initial_state = initial_state
+
 def play_turn(strat, history, mistake):
     """ Play a single turn for a single player with some probability of a
     mistake happening """
@@ -69,50 +76,41 @@ def play_turn(strat, history, mistake):
     else:
         return action
 
-def play_game(strat1, strat2, initial1, initial2, mistake, rounds):
+def play_game(player1, player2, mistake, rounds):
     """ Play a game between two players from start to finish """
+
     # Find the largest memory m
-    m1 = max([len(k) for k in strat1.keys()])
-    m2 = max([len(k) for k in strat2.keys()])
+    m1 = max([len(k) for k in player1.strategy.keys()])
+    m2 = max([len(k) for k in player2.strategy.keys()])
 
     # Create random initial history
     history = History()
     for i in range(max(m1, m2)):
-        a1 = initial1
-        a2 = initial2
+        a1 = player1.initial_state
+        a2 = player2.initial_state
         history.put(a1,a2)
+
     # Play the game out
     for r in range(rounds):
         # Player 1 plays
         hist1 = history.p1[-m1:]
-        action1 = play_turn(strat1, hist1, mistake)
+        action1 = play_turn(player1.strategy, hist1, mistake)
         # Player 2 plays
         hist2 = history.p2[-m2:]
-        action2 = play_turn(strat2, hist2, mistake)
+        action2 = play_turn(player2.strategy, hist2, mistake)
         # Store the results
         history.put(action1, action2)
     return history
 
 def play_all(population, mistake, rounds):
-    n = len(population)
-    winners = []
-    for i in range(n):
-        for j in range(n):
-            strat1 = population[i]
-            strat2 = population[j]
-            initial1 = population[i]['initial']
-            initial2 = population[j]['initial']
-            history = play_game(strat1['strat'], strat2['strat'], initial1, initial2, mistake, rounds)
-            if history.score1 > history.score2:
-                winners.append(strat1)
-            elif history.score2 > history.score1:
-                winners.append(strat2)
-            else:
-                if random.random() < 0.5:
-                    winners.append(strat1)
-                else:
-                    winners.append(strat2)
-    return winners
+    for player1 in population:
+        for player2 in population:
+            history = play_game(player1, player2, mistake, rounds)
+
+            player1.score += history.score1
+            player2.score += history.score2
+    
+    return population
 
 # Lattice play
 # ------------
@@ -143,19 +141,18 @@ def play_lattice(lat, mistake, rounds):
     return total_score
 
 
-strategy_pool = [
-    {'strat': {'c': C,'d': D},
-     'initial': C},
-    {'strat': {'c': C,'d': C},
-     'initial': C},
-    {'strat': {'c': D,'d': D},
-     'initial': C},
-    {'strat': {'c': D,'d': C},
-     'initial': C}
-    ]
+
 
 def init_square_lattice(N):
     lattice = []
+
+    strategy_pool = [
+        {'c': C,'d': D},
+        {'c': C,'d': C},
+        {'c': D,'d': D},
+        {'c': D,'d': C},
+        ]
+
     for i in range(N):
         lattice.append([])
         for _ in range(N):
@@ -165,75 +162,108 @@ def init_square_lattice(N):
     return lattice
 # ------------
 
-def init_population(N):
+def init_population(N: int) -> list[Player]:
     """ Initialize the population with 25% of each of the four basic strategies.
     Final population will have size 4*N """
 
-    tft      = strategy_pool[0]
-    all_coop = strategy_pool[1]
-    all_def  = strategy_pool[2]
-    anti_tft = strategy_pool[3]
+    strategy_pool = [
+        {'c': C,'d': D},
+        {'c': C,'d': C},
+        {'c': D,'d': D},
+        {'c': D,'d': C},
+        ]
 
-    a = list(repeat(tft, N)) # tit for tat
-    b = list(repeat(all_coop, N)) # all cooperate
-    c = list(repeat(all_def, N)) # all defect
-    d = list(repeat(anti_tft, N)) # anti tit for tat
+    # one of 4 strats and one of 2 initials
+    player_types = [Player(strat, init) for strat in strategy_pool for init in [C,D]]
 
-    return a + b + c + d
+    players = []
+    for player in player_types:
+        players += [copy.deepcopy(player) for i in range(N)]
+
+    return players
 
 def select(population, mistake, rounds):
     """ Selects new population randomely from winners """
-    winners = play_all(population, mistake, rounds)
-    indexes = np.random.randint(len(winners), size=len(population))
-    return [winners[i] for i in indexes]
+    population = play_all(population, mistake, rounds)
 
-def duplicate(gene: dict, max_len) -> dict:
-    m = len(list(gene.keys())[0])
+    scores = [p.score for p in population]
+    score_sum = np.sum(scores)
 
-    if m < max_len:
+    new_population = []
+    for _ in range(len(population)):
+        r = random.random() * score_sum
+        for player in population:
+            if player.score > r:
+                new_population.append(player)
+                break
+            else:
+                r -= player.score
 
-        new_gene = {}
-        for key, value in gene.items():
-            new_gene[('c'+key)] = value
-            new_gene[('d'+key)] = value
+    for p in population:
+        p.score = 0
 
-        return new_gene
+    return new_population
+
+def duplicate(player: Player, max_len) -> Player:
+
+    if player.memory_size < max_len:
+
+        new_strategy = {}
+        for key, value in player.strategy.items():
+            new_strategy[('c'+key)] = value
+            new_strategy[('d'+key)] = value
+
+        player.strategy = new_strategy
+        player.memory_size += 1
+        player.initial_state = random.choice([C,D]) + player.initial_state
+
+        return player
     else: 
-        return gene
+        return player
 
-def point_mutation(gene, mut):
-    for key, b in gene.items():
+def point_mutation(player: Player, mut: float) -> Player:
+    # mutate actions
+    for key, b in player.strategy.items():
         if random.random() < mut:
-            gene[key] = not_action(b)
-    return gene
+            player.strategy[key] = not_action(b)
+    #  mutate initial state
+    for i in range(len(player.initial_state)):
+        if random.random() < mut:
+            new_init_state = list(player.initial_state)
+            new_init_state[i] = not_action(new_init_state[i])
+            player.initial_state = ''.join(new_init_state)
 
-def split(strategy: dict) -> dict:
-    m = len(list(strategy.keys())[0])
+    return player
 
-    if m == 1:
-        return strategy
+def split(player: Player) -> Player:
+    if player.memory_size == 1:
+        return player
     else:
         new_strat = {}
-        s = strategy
+        s = player.strategy
         keys = list(s.keys())
-        start_idx = np.random.randint(0,2)
+        start_idx = random.randint(0,1)
         for key in keys[start_idx::2]:
             new_strat[key[1:]] = s[key]
-        return new_strat
 
-def mutate(population, mut):
+        player.strategy = new_strat
+        # remove first character in initial state
+        player.initial_state = player.initial_state[1:]
+        player.memory_size -= 1
+
+        return player
+
+def mutate(population, mut, max_len):
     new_population = []
-    for gene in population:
-        new_gene = copy.deepcopy(gene)
+    for player in population:
+        new_player = copy.deepcopy(player)
         if random.random() < mut:
-            new_gene['strat'] = duplicate(new_gene['strat'])
-
-        new_gene['strat'] = point_mutation(new_gene['strat'], mut)
-
+            new_player = duplicate(new_player, max_len)
+        new_player = point_mutation(new_player, mut)
         if random.random() < mut:
-            new_gene['strat'] = split(new_gene['strat'])
+            new_player = split(new_player)
 
-        new_population.append(new_gene)
+        new_population.append(new_player)
     return new_population
 
 def strat_to_string(gene_dict: dict) -> str:
@@ -246,7 +276,7 @@ def not_action(action):
     return 'c' if action == 'd' else 'd'
 
 def print_population(population):
-    pop_strs = [strat_to_string(gene['strat']) for gene in population]
+    pop_strs = [strat_to_string(player.strategy) for player in population]
     strats, counts = np.unique(pop_strs, return_counts=True)
     ind = np.argsort(-counts)
     print("Strategies: ", strats[ind], counts[ind])
@@ -254,11 +284,13 @@ def print_population(population):
 if __name__ == "__main__":
 
     init_group_size = 25
-    generations = 10
+    generations = 20
 
     rounds = 100
     mistake = 0.01
     mut = 0.01
+
+    max_len = 4
 
     population = init_population(init_group_size)
 
@@ -267,12 +299,14 @@ if __name__ == "__main__":
     for i in range(generations):
         start_time = time.time()
         print("Generation", i)
+
         population = select(population, mistake, rounds)
-        population = mutate(population, mut)
+        population = mutate(population, mut, max_len)
+
         print_population(population)
         dt = time.time() - start_time
         print(f"⏱️: {dt:2f} [s]")
 
-    print(play_lattice(init_square_lattice(3), 0, 10))
+    # print(play_lattice(init_square_lattice(3), 0, 10))
 
     print("🏁 Fin")
