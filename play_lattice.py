@@ -1,12 +1,17 @@
 import pygame
 from game import *
+import matplotlib.pyplot as plt
 
-def update(population):
+def update(population, history, present_strategies, generation):
     population = play_lattice(population, mistake, rounds)
     population = select_lattice(population)
     population = mutate_lattice(population, mut, max_len)
-    #  print_lattice_population(population)
-    return population
+
+    strats, counts = count_strategies_lattice(population)
+    print_strategies(strats, counts)
+    history, present_strategies = generate_history(generation, history,
+            present_strategies, strats,counts)
+    return population, history, present_strategies
 
 def get_color(colors, strategy):
     name = strat_to_string(strategy)
@@ -80,15 +85,23 @@ exit = False
 population = init_square_lattice(population_size)
 colors = {}
 
+present_strategies, history = count_strategies_lattice(population)
+history = [[k] for k in history]
+present_strategies = list(present_strategies)
+fig, ax = plt.subplots(figsize=(10, 6))
+
+generation = 0
 while not exit:
 
     clock.tick(FPS)
 
     if animate:
         canvas.fill((0,0,0))
-        population = update(population)
+        population, history, present_strategies = update(population, history,
+                present_strategies, generation)
         draw(canvas, population, colors, CELL_SIZE)
         draw_legend(canvas, population, colors, font, CELL_SIZE)
+        generation += 1
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -104,3 +117,17 @@ while not exit:
                 FPS = max(1, FPS - 5)
 
     pygame.display.update()
+
+for n, strat in enumerate(history):
+    if n < 10:
+        ax.plot(range(generation+1), strat, label=present_strategies[n])
+    else:
+        ax.plot(range(generation+1), strat)
+
+ax.set_xlabel('Generation')
+ax.set_ylabel('# players with strategy')
+ax.set_xlim(0)
+ax.set_ylim(0)
+
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.savefig('strategy_history_lattice.png')
