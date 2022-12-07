@@ -5,7 +5,6 @@ import random
 import time
 import copy
 import itertools
-
 C = 'c' # Cooperate
 D = 'd' # Defect
 A = 'a' # Abstain
@@ -187,13 +186,12 @@ def init_population(N: int) -> list[Player]:
 
     strategy_pool = []
 
-    for first, second, third in itertools.combinations_with_replacement(ALL_ACTIONS, 3):
-        new_strat = {
-            'c': first,
-            'd': second,
-            'a': third,
-        }
+    # this is not what we want
+    for comb in list(itertools.product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
+        new_strat = dict(zip(ALL_ACTIONS, comb))
         strategy_pool.append(new_strat)
+
+    strategy_pool = [{'c': c, 'd': d, 'a': a} for c in ALL_ACTIONS for d in ALL_ACTIONS for a in ALL_ACTIONS]
 
     # one of 4 strats and one of 2 initials
     player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
@@ -237,7 +235,7 @@ def duplicate(player: Player, max_len) -> Player:
 
         player.strategy = new_strategy
         player.memory_size += 1
-        player.initial_state = random.choice([C,D]) + player.initial_state
+        player.initial_state = random.choice(ALL_ACTIONS) + player.initial_state
 
         return player
     else: 
@@ -301,8 +299,7 @@ def not_action(action):
     """ Returns another action """
     all_actions_copy = copy.deepcopy(ALL_ACTIONS)
     all_actions_copy.remove(action)
-    n_actions = len(ALL_ACTIONS)
-    return all_actions_copy[random.randint(0,(n_actions-2))]
+    return random.choice(all_actions_copy)
 
 def print_population(population):
     pop_strs = [strat_to_string(player.strategy) for player in population]
@@ -312,8 +309,8 @@ def print_population(population):
 
 if __name__ == "__main__":
 
-    init_group_size = 25
-    generations = 5
+    init_group_size = 2
+    generations = 10
 
     rounds = 10
     mistake = 0.01
