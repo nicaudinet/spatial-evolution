@@ -359,7 +359,7 @@ def generate_history(i, history, present_strategies, strats, counts):
 if __name__ == "__main__":
 
     population_size = 100
-    generations = 50
+    generations = 10
 
     rounds = 10
     mistake = 0.01
@@ -384,7 +384,7 @@ if __name__ == "__main__":
     present_strategies, history = print_population(population)
     history = [[k] for k in history]
     present_strategies = list(present_strategies)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     for i in range(generations):
         start_time = time.time()
@@ -400,7 +400,10 @@ if __name__ == "__main__":
         print(f"⏱️: {dt:2f} [s]")
     
     for n, strat in enumerate(history):
-        ax.plot(range(generations+1), strat, label=present_strategies[n])
+        if n < 10:
+            ax.plot(range(generations+1), strat, label=present_strategies[n])
+        else:
+            ax.plot(range(generations+1), strat)
 
     ax.set_xlabel('Generation')
     ax.set_ylabel('# players with strategy')
