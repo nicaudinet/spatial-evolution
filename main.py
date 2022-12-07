@@ -159,7 +159,6 @@ def init_square_lattice(N):
 
     strategy_pool = []
 
-    # this is not what we want
     for comb in list(itertools.product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
         new_strat = dict(zip(ALL_ACTIONS, comb))
         strategy_pool.append(new_strat)
@@ -176,8 +175,8 @@ def init_square_lattice(N):
 # ------------
 
 def init_population(N: int) -> list[Player]:
-    """ Initialize the population with 25% of each of the four basic strategies.
-    Final population will have size 4*N """
+    """ Initialize the population with ??% of each of the four basic strategies.
+    Final population will have size ??? """
 
     strategy_pool = []
 
@@ -186,9 +185,6 @@ def init_population(N: int) -> list[Player]:
         new_strat = dict(zip(ALL_ACTIONS, comb))
         strategy_pool.append(new_strat)
 
-    # strategy_pool = [{'c': c, 'd': d, 'a': a} for c in ALL_ACTIONS for d in ALL_ACTIONS for a in ALL_ACTIONS]
-
-    # one of 4 strats and one of 2 initials
     player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
 
     players = []
@@ -280,7 +276,7 @@ def split(player: Player) -> Player:
 
         return player
 
-def mutate(population, mut, max_len):
+def mutate_all(population, mut, max_len):
     new_population = []
     for player in population:
         new_player = copy.deepcopy(player)
@@ -291,6 +287,23 @@ def mutate(population, mut, max_len):
             new_player = split(new_player)
 
         new_population.append(new_player)
+    return new_population
+
+def mutate_lattice(population, mut, max_len):
+    new_population = []
+    n = len(population)
+    for i in range(n):
+        new_population.append([])
+        for j in range(n):
+            player = population[i][j]
+            new_player = copy.deepcopy(player)
+            if random.random() < mut:
+                new_player = duplicate(new_player, max_len)
+            new_player = point_mutation(new_player, mut)
+            if random.random() < mut:
+                new_player = split(new_player)
+
+            new_population[i].append(new_player)
     return new_population
 
 def strat_to_string(gene_dict: dict) -> str:
@@ -326,7 +339,7 @@ if __name__ == "__main__":
     generations = 100
 
     rounds = 10
-    mistake = 0.#0.01
+    mistake = 0.01
     mut = 0.01
 
     max_len = 4
@@ -337,23 +350,23 @@ if __name__ == "__main__":
         selection = select_lattice
         playing = play_lattice
         print_population = print_lattice_population
+        mutate = mutate_lattice
     elif mode == 'all':
         population = init_population(init_group_size)
         selection = select_all
         playing = play_all
         print_population = print_all_population
+        mutate = mutate_all
 
     for i in range(generations):
         start_time = time.time()
         print("Generation", i)
         population = playing(population, mistake, rounds)
         population = selection(population)
-        # population = mutate(population, mut, max_len)
+        population = mutate(population, mut, max_len)
 
         print_population(population)
         dt = time.time() - start_time
         print(f"⏱️: {dt:2f} [s]")
-
-    # print(play_lattice(init_square_lattice(3), 0, 10))
 
     print("🏁 Fin")
