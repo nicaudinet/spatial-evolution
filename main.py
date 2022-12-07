@@ -5,6 +5,8 @@ import random
 import time
 import copy
 import itertools
+import matplotlib.pyplot as plt
+
 C = 'c' # Cooperate
 D = 'd' # Defect
 A = 'a' # Abstain
@@ -322,6 +324,7 @@ def print_all_population(population):
     strats, counts = np.unique(pop_strs, return_counts=True)
     ind = np.argsort(-counts)
     print("Strategies: ", strats[ind], counts[ind])
+    return strats, counts
 
 def print_lattice_population(population):
     pop_strs = []
@@ -331,12 +334,32 @@ def print_lattice_population(population):
     strats, counts = np.unique(pop_strs, return_counts=True)
     ind = np.argsort(-counts)
     print("🥬 strategies: ", strats[ind], counts[ind])
+    return strats, counts
+
+
+def generate_history(i, history, present_strategies, strats, counts):
+    
+    for j, strat in enumerate(strats):
+
+        if strat in present_strategies:
+            idx = present_strategies.index(strat)
+            history[idx] = [*history[idx], *[counts[j]]]
+        else:
+            pad = list((-1)*np.ones(i+1,dtype=int))
+            history.append([*pad,*[counts[j]]])
+            present_strategies.append(strat)
+                
+    for dict in present_strategies:
+        if dict not in strats: 
+            idx = present_strategies.index(dict)
+            history[idx] = [*history[idx], *[0]]
+    
+    return history, present_strategies
 
 if __name__ == "__main__":
 
-    init_group_size = 2
     population_size = 100
-    generations = 100
+    generations = 50
 
     rounds = 10
     mistake = 0.01
@@ -352,11 +375,16 @@ if __name__ == "__main__":
         print_population = print_lattice_population
         mutate = mutate_lattice
     elif mode == 'all':
-        population = init_population(init_group_size)
+        population = init_population(population_size)
         selection = select_all
         playing = play_all
         print_population = print_all_population
         mutate = mutate_all
+
+    present_strategies, history = print_population(population)
+    history = [[k] for k in history]
+    present_strategies = list(present_strategies)
+    fig, ax = plt.subplots()
 
     for i in range(generations):
         start_time = time.time()
@@ -365,8 +393,21 @@ if __name__ == "__main__":
         population = selection(population)
         population = mutate(population, mut, max_len)
 
-        print_population(population)
+        strats, counts = print_population(population)
+        history, present_strategies = generate_history(i,history, present_strategies,strats,counts)
+
         dt = time.time() - start_time
         print(f"⏱️: {dt:2f} [s]")
+    
+    for n, strat in enumerate(history):
+        ax.plot(range(generations+1), strat, label=present_strategies[n])
+
+    ax.set_xlabel('Generation')
+    ax.set_ylabel('# players with strategy')
+    ax.set_xlim(0)
+    ax.set_ylim(0)
+
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig('strategy_history.png')
 
     print("🏁 Fin")
