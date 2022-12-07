@@ -6,6 +6,7 @@ import time
 import copy
 import itertools
 import matplotlib.pyplot as plt
+import pygame
 
 C = 'c' # Cooperate
 D = 'd' # Defect
