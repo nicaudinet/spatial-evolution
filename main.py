@@ -196,7 +196,7 @@ def init_population(N: int) -> list[Player]:
         strategy_pool.append(new_strat)
 
     # one of 4 strats and one of 2 initials
-    player_types = [Player(strat, init) for strat in strategy_pool for init in [C,D]]
+    player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
 
     players = []
     for player in player_types:
