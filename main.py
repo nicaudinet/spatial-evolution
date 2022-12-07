@@ -121,8 +121,12 @@ def play_game(player1, player2, mistake, rounds):
     return history
 
 def play_all(population, mistake, rounds):
+
+    for p in population:
+        p.score = 0
+
     for player1 in population:
-        for player2 in population:
+        for player2 in population:            
             history = play_game(player1, player2, mistake, rounds)
 
             player1.score += history.score1
@@ -134,48 +138,39 @@ def play_all(population, mistake, rounds):
 # ------------
 def play_neighbors(lat, i, j, mistake, rounds):
     n = len(lat)
-    up    = n - 1 if i == 0     else i - 1
-    down  = 0     if i == n - 1 else i + 1
-    left  = n - 1 if j == 0     else j - 1
-    right = 0     if j == n - 1 else j + 1
-
-    # Strats
-    my_strat = lat[i][j]
-    up_neighba, down_neighba, left_neighba, right_neighba = lat[up][j], lat[down][j], lat[i][left], lat[i][right]
-    
+    neighbor_inds = neighborhood(i, j, n, n)
+    # neighbors_and_me = neighbors + (i, j)
+    player = lat[i][j]
     # Result of playing neighbas
-    payoff_up, payoff_down, payoff_left, payoff_right = play_game(my_strat['strat'], up_neighba['strat'], my_strat['initial'], up_neighba['initial'],  mistake, rounds).score1, play_game(my_strat['strat'], down_neighba['strat'], my_strat['initial'], down_neighba['initial'],  mistake, rounds).score1, play_game(my_strat['strat'], left_neighba['strat'], my_strat['initial'], left_neighba['initial'],  mistake, rounds).score1, play_game(my_strat['strat'], right_neighba['strat'], my_strat['initial'], right_neighba['initial'],  mistake, rounds).score1
-    print(f"my_strat: {my_strat}; up,down,left,right respectively: \n", up_neighba, down_neighba, left_neighba, right_neighba)
-    print("my payoff against up,down,left,right respectively:\n", payoff_up, payoff_down, payoff_left, payoff_right)
-    return payoff_up + payoff_down + payoff_left + payoff_right
+    for n_i, n_j in neighbor_inds:
+        neighba = lat[n_i][n_j]
+        player.score += play_game(player, neighba, mistake, rounds).score1
 
-def play_lattice(lat, mistake, rounds):
+def play_lattice(lat, mistake, rounds):    
     n = len(lat)
-    total_score = []
     for i in range(n):
-        total_score.append([])
         for j in range(n):
-            total_score[i].append(play_neighbors(lat, i, j, mistake, rounds))
-    return total_score
-
-
-
+            lat[i][j].score = 0
+            play_neighbors(lat, i, j, mistake, rounds)
+    return lat
 
 def init_square_lattice(N):
     lattice = []
 
-    strategy_pool = [
-        {'c': C,'d': D},
-        {'c': C,'d': C},
-        {'c': D,'d': D},
-        {'c': D,'d': C},
-        ]
+    strategy_pool = []
+
+    # this is not what we want
+    for comb in list(itertools.product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
+        new_strat = dict(zip(ALL_ACTIONS, comb))
+        strategy_pool.append(new_strat)
+
+    player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
 
     for i in range(N):
         lattice.append([])
         for _ in range(N):
-            ind = 0 #np.random.choice(range(len(strategy_pool)))
-            strat = strategy_pool[ind]
+            ind = np.random.choice(range(len(strategy_pool)))
+            strat = copy.deepcopy(player_types[ind])
             lattice[i].append(strat)
     return lattice
 # ------------
@@ -191,7 +186,7 @@ def init_population(N: int) -> list[Player]:
         new_strat = dict(zip(ALL_ACTIONS, comb))
         strategy_pool.append(new_strat)
 
-    strategy_pool = [{'c': c, 'd': d, 'a': a} for c in ALL_ACTIONS for d in ALL_ACTIONS for a in ALL_ACTIONS]
+    # strategy_pool = [{'c': c, 'd': d, 'a': a} for c in ALL_ACTIONS for d in ALL_ACTIONS for a in ALL_ACTIONS]
 
     # one of 4 strats and one of 2 initials
     player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
@@ -202,27 +197,35 @@ def init_population(N: int) -> list[Player]:
 
     return players
 
-def select(population, mistake, rounds):
+def select_one(players: list) -> Player:
+    scores = [p.score for p in players]
+    selected = random.choices(players, weights=scores)[0]
+    # selected.score = 0
+
+    return selected
+
+def select_all(population):
     """ Selects new population randomely from winners """
-    population = play_all(population, mistake, rounds)
-
-    scores = [p.score for p in population]
-    score_sum = np.sum(scores)
-
-    new_population = []
-    for _ in range(len(population)):
-        r = random.random() * score_sum
-        for player in population:
-            if player.score > r:
-                new_population.append(player)
-                break
-            else:
-                r -= player.score
-
-    for p in population:
-        p.score = 0
+    new_population = [select_one(population) for _ in range(len(population))]
 
     return new_population
+
+def select_lattice(population):
+
+    n = len(population)
+    new_population = []
+    for i in range(n):
+        new_population.append([])
+        for j in range(n):
+            neighbor_inds = neighborhood(i, j, n, n)
+            neighbors_and_me_inds = neighbor_inds + [(i, j)]
+            neighbors_and_me = list(map(lambda x: population[x[0]][x[1]], neighbors_and_me_inds))
+            new_population[i].append(select_one(neighbors_and_me))
+
+    return new_population
+
+def neighborhood(i, j, n, m):
+    return [((i + 1) % n, j), ((i - 1) % n, j), (i, (j + 1) % m), (i, (j - 1) % m)]
 
 def duplicate(player: Player, max_len) -> Player:
 
@@ -301,33 +304,51 @@ def not_action(action):
     all_actions_copy.remove(action)
     return random.choice(all_actions_copy)
 
-def print_population(population):
+def print_all_population(population):
     pop_strs = [strat_to_string(player.strategy) for player in population]
     strats, counts = np.unique(pop_strs, return_counts=True)
     ind = np.argsort(-counts)
     print("Strategies: ", strats[ind], counts[ind])
 
+def print_lattice_population(population):
+    pop_strs = []
+    for i in range(len(population)):
+        for j in range(len(population)):
+            pop_strs.append(strat_to_string(population[i][j].strategy))
+    strats, counts = np.unique(pop_strs, return_counts=True)
+    ind = np.argsort(-counts)
+    print("🥬 strategies: ", strats[ind], counts[ind])
+
 if __name__ == "__main__":
 
     init_group_size = 2
-    generations = 10
+    population_size = 100
+    generations = 100
 
     rounds = 10
-    mistake = 0.01
+    mistake = 0.#0.01
     mut = 0.01
 
     max_len = 4
 
-    population = init_population(init_group_size)
-
-    print_population(population)
+    mode = 'lattice'
+    if mode == 'lattice':
+        population = init_square_lattice(population_size)
+        selection = select_lattice
+        playing = play_lattice
+        print_population = print_lattice_population
+    elif mode == 'all':
+        population = init_population(init_group_size)
+        selection = select_all
+        playing = play_all
+        print_population = print_all_population
 
     for i in range(generations):
         start_time = time.time()
         print("Generation", i)
-
-        population = select(population, mistake, rounds)
-        population = mutate(population, mut, max_len)
+        population = playing(population, mistake, rounds)
+        population = selection(population)
+        # population = mutate(population, mut, max_len)
 
         print_population(population)
         dt = time.time() - start_time
