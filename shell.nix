@@ -5,6 +5,7 @@ let
     pygame
     snakeviz
     ipython
+    matplotlib
   ]);
 in
 python-with-my-packages.env
