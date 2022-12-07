@@ -5,6 +5,8 @@ import random
 import time
 import copy
 import itertools
+import matplotlib.pyplot as plt
+
 C = 'c' # Cooperate
 D = 'd' # Defect
 A = 'a' # Abstain
@@ -317,26 +319,49 @@ def not_action(action):
     all_actions_copy.remove(action)
     return random.choice(all_actions_copy)
 
-def print_all_population(population):
-    pop_strs = [strat_to_string(player.strategy) for player in population]
-    strats, counts = np.unique(pop_strs, return_counts=True)
+def count_strategies_all(population):
+    strats = [strat_to_string(player.strategy) for player in population]
+    strats, counts = np.unique(strats, return_counts=True)
     ind = np.argsort(-counts)
-    print("Strategies: ", strats[ind], counts[ind])
+    return strats[ind], counts[ind]
 
-def print_lattice_population(population):
-    pop_strs = []
-    for i in range(len(population)):
-        for j in range(len(population)):
-            pop_strs.append(strat_to_string(population[i][j].strategy))
-    strats, counts = np.unique(pop_strs, return_counts=True)
+def count_strategies_lattice(population):
+    strats = []
+    n = len(population)
+    for i in range(n):
+        for j in range(n):
+            strat = population[i][j].strategy
+            strats.append(strat_to_string(strat))
+    strats, counts = np.unique(strats, return_counts=True)
     ind = np.argsort(-counts)
-    print("🥬 strategies: ", strats[ind], counts[ind])
+    return strats[ind], counts[ind]
+
+def print_strategies(strats, counts):
+    print("🥬 strategies: ", strats, counts)
+
+def generate_history(i, history, present_strategies, strats, counts):
+    
+    for j, strat in enumerate(strats):
+
+        if strat in present_strategies:
+            idx = present_strategies.index(strat)
+            history[idx] = [*history[idx], *[counts[j]]]
+        else:
+            pad = list((-1)*np.ones(i+1,dtype=int))
+            history.append([*pad,*[counts[j]]])
+            present_strategies.append(strat)
+                
+    for dict in present_strategies:
+        if dict not in strats: 
+            idx = present_strategies.index(dict)
+            history[idx] = [*history[idx], *[0]]
+    
+    return history, present_strategies
 
 if __name__ == "__main__":
 
-    init_group_size = 2
     population_size = 100
-    generations = 100
+    generations = 10
 
     rounds = 10
     mistake = 0.01
@@ -349,14 +374,20 @@ if __name__ == "__main__":
         population = init_square_lattice(population_size)
         selection = select_lattice
         playing = play_lattice
-        print_population = print_lattice_population
         mutate = mutate_lattice
+        count_strategies = count_strategies_lattice
     elif mode == 'all':
-        population = init_population(init_group_size)
+        population = init_population(population_size)
         selection = select_all
         playing = play_all
-        print_population = print_all_population
         mutate = mutate_all
+        count_strategies = count_strategies_all
+
+    present_strategies, history = count_strategies(population)
+    print_strategies(present_strategies, history)
+    history = [[k] for k in history]
+    present_strategies = list(present_strategies)
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     for i in range(generations):
         start_time = time.time()
@@ -365,8 +396,25 @@ if __name__ == "__main__":
         population = selection(population)
         population = mutate(population, mut, max_len)
 
-        print_population(population)
+        strats, counts = count_strategies(population)
+        print_strategies(strats, counts)
+        history, present_strategies = generate_history(i,history, present_strategies,strats,counts)
+
         dt = time.time() - start_time
         print(f"⏱️: {dt:2f} [s]")
+    
+    for n, strat in enumerate(history):
+        if n < 10:
+            ax.plot(range(generations+1), strat, label=present_strategies[n])
+        else:
+            ax.plot(range(generations+1), strat)
+
+    ax.set_xlabel('Generation')
+    ax.set_ylabel('# players with strategy')
+    ax.set_xlim(0)
+    ax.set_ylim(0)
+
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.savefig('strategy_history.png')
 
     print("🏁 Fin")
