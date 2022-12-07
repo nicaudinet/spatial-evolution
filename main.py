@@ -319,23 +319,25 @@ def not_action(action):
     all_actions_copy.remove(action)
     return random.choice(all_actions_copy)
 
-def print_all_population(population):
-    pop_strs = [strat_to_string(player.strategy) for player in population]
-    strats, counts = np.unique(pop_strs, return_counts=True)
+def count_strategies_all(population):
+    strats = [strat_to_string(player.strategy) for player in population]
+    strats, counts = np.unique(strats, return_counts=True)
     ind = np.argsort(-counts)
-    print("Strategies: ", strats[ind], counts[ind])
-    return strats, counts
+    return strats[ind], counts[ind]
 
-def print_lattice_population(population):
-    pop_strs = []
-    for i in range(len(population)):
-        for j in range(len(population)):
-            pop_strs.append(strat_to_string(population[i][j].strategy))
-    strats, counts = np.unique(pop_strs, return_counts=True)
+def count_strategies_lattice(population):
+    strats = []
+    n = len(population)
+    for i in range(n):
+        for j in range(n):
+            strat = population[i][j].strategy
+            strats.append(strat_to_string(strat))
+    strats, counts = np.unique(strats, return_counts=True)
     ind = np.argsort(-counts)
-    print("🥬 strategies: ", strats[ind], counts[ind])
-    return strats, counts
+    return strats[ind], counts[ind]
 
+def print_strategies(strats, counts):
+    print("🥬 strategies: ", strats, counts)
 
 def generate_history(i, history, present_strategies, strats, counts):
     
@@ -372,16 +374,17 @@ if __name__ == "__main__":
         population = init_square_lattice(population_size)
         selection = select_lattice
         playing = play_lattice
-        print_population = print_lattice_population
         mutate = mutate_lattice
+        count_strategies = count_strategies_lattice
     elif mode == 'all':
         population = init_population(population_size)
         selection = select_all
         playing = play_all
-        print_population = print_all_population
         mutate = mutate_all
+        count_strategies = count_strategies_all
 
-    present_strategies, history = print_population(population)
+    present_strategies, history = count_strategies(population)
+    print_strategies(present_strategies, history)
     history = [[k] for k in history]
     present_strategies = list(present_strategies)
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -393,7 +396,8 @@ if __name__ == "__main__":
         population = selection(population)
         population = mutate(population, mut, max_len)
 
-        strats, counts = print_population(population)
+        strats, counts = count_strategies(population)
+        print_strategies(strats, counts)
         history, present_strategies = generate_history(i,history, present_strategies,strats,counts)
 
         dt = time.time() - start_time
