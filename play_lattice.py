@@ -53,12 +53,15 @@ def draw_legend(canvas, population, colors, font, cell_size):
         pygame.draw.rect(canvas, colors[strat], rect)
         display_text = str(count).rjust(5, " ") + " - " + strat
         text = font.render(display_text, False, (255,255,255))
-        canvas.blit(text, (width_text, height + 5))
+        canvas.blit(text, (width_text, height))
         counter += 1
 
-population_size = 20
+######################################
+# Config
 
-rounds = 100
+population_size = 100
+
+rounds = 50
 mistake = 0.01
 mut = 0.01
 
@@ -66,11 +69,14 @@ max_len = 2
 
 FPS = 11
 
-CELL_SIZE = 30
+CELL_SIZE = 10
 LEGEND_SIZE = 300
-FONT_SIZE = 30
+FONT_SIZE = CELL_SIZE
 WINDOW_HEIGHT = population_size * CELL_SIZE
 WINDOW_WIDTH = population_size * CELL_SIZE + LEGEND_SIZE
+
+######################################
+# Main
 
 pygame.init()
 pygame.font.init()
@@ -91,6 +97,10 @@ present_strategies = list(present_strategies)
 fig, ax = plt.subplots(figsize=(10, 6))
 
 generation = 0
+
+strats, counts = count_strategies_lattice(population)
+print_strategies(strats, counts)
+
 while not exit:
 
     clock.tick(FPS)
@@ -118,11 +128,16 @@ while not exit:
 
     pygame.display.update()
 
-for n, strat in enumerate(history):
-    if n < 10:
-        ax.plot(range(generation+1), strat, label=present_strategies[n])
+# sort history
+np_hist = np.array(history)
+np_hist_sum = np.sum(np_hist, axis=1)
+sorted_inds = np.argsort(-np_hist_sum)
+
+for i, n in enumerate(sorted_inds):
+    if i < 10:
+        ax.plot(range(generation+1), history[n], label=present_strategies[n])
     else:
-        ax.plot(range(generation+1), strat)
+        ax.plot(range(generation+1), history[n])
 
 ax.set_xlabel('Generation')
 ax.set_ylabel('# players with strategy')
