@@ -45,7 +45,7 @@ class Game:
         """ Play a single turn for a single player with some probability of a
         mistake happening """
         strategy = p['player'].strategy
-        m = max([len(k) for k in strategy.keys()])
+        m = p['player'].memory_size
         assert len(p['history']) >= m
         prev_actions = p['history'][-m:]
         action = strategy[prev_actions]
