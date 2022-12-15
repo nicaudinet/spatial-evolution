@@ -1,3 +1,6 @@
+import copy
+import random
+
 C = 'c' # Cooperate
 D = 'd' # Defect
 A = 'a' # Abstain
@@ -14,3 +17,9 @@ S = 0
 
 P1 = 0
 P2 = 1
+
+def not_action(action):
+    """ Returns another action """
+    all_actions_copy = copy.deepcopy(ALL_ACTIONS)
+    all_actions_copy.remove(action)
+    return random.choice(all_actions_copy)

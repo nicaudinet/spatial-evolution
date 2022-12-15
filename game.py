@@ -1,65 +1,43 @@
-from itertools import repeat
+from itertools import repeat, product
 from math import log2
 import numpy as np
 import random
 import time
 import copy
-import itertools
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
+from functools import partial
 
 from lib.player import Player
 from lib.constants import *
-from lib.history import History
+from lib.game import Game
 
-def play_turn(strat, history, mistake):
-    """ Play a single turn for a single player with some probability of a
-    mistake happening """
-    action = strat[history]
-
-    if random.random() < mistake:
-        return not_action(action)
-    else:
-        return action
-
-def play_game(player1, player2, mistake, rounds):
-    """ Play a game between two players from start to finish """
-
-    # Find the largest memory m
-    m1 = max([len(k) for k in player1.strategy.keys()])
-    m2 = max([len(k) for k in player2.strategy.keys()])
-
-    # Create random initial history
-    history = History()
-    for i in range(max(m1, m2)):
-        a1 = player1.initial_state
-        a2 = player2.initial_state
-        history.put(a1,a2)
-
-    # Play the game out
-    for r in range(rounds):
-        # Player 1 plays
-        hist1 = history.p1[-m1:]
-        action1 = play_turn(player1.strategy, hist1, mistake)
-        # Player 2 plays
-        hist2 = history.p2[-m2:]
-        action2 = play_turn(player2.strategy, hist2, mistake)
-        # Store the results
-        history.put(action1, action2)
-    return history
+def play_game(player_pair, mistake, rounds):
+    player1, player2 = player_pair
+    game = Game(player1, player2, mistake, rounds)
+    game.play_game()
+    p1 = (player1.index, game.p1['score'])
+    p2 = (player2.index, game.p2['score'])
+    return (p1, p2)
 
 def play_all(population, mistake, rounds):
 
-    for p in population:
-        p.score = 0
+    for player in population:
+        player.score = 0
 
-    for player1 in population:
-        for player2 in population:            
-            history = play_game(player1, player2, mistake, rounds)
+    player_pairs = list(product(population, repeat=2))
 
-            player1.score += history.score1
-            player2.score += history.score2
-    
+    with Pool(8) as pool:
+        play = partial(play_game, mistake=mistake, rounds=rounds)
+        chunksize = len(player_pairs) // 8
+        players_and_scores = list(pool.map(play, player_pairs, chunksize))
+
+    for i in players_and_scores:
+        for player_index, score in i:
+            population[player_index].score += score
+
     return population
+
 
 # Lattice play
 # ------------
@@ -86,7 +64,7 @@ def init_square_lattice(N):
 
     strategy_pool = []
 
-    for comb in list(itertools.product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
+    for comb in list(product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
         new_strat = dict(zip(ALL_ACTIONS, comb))
         strategy_pool.append(new_strat)
 
@@ -102,23 +80,24 @@ def init_square_lattice(N):
 # ------------
 
 def init_population(N: int) -> list[Player]:
-    """ Initialize the population with ??% of each of the four basic strategies.
-    Final population will have size ??? """
+    """ Initialize the population with an equal number of all M=1 strategies.
+    """
 
-    strategy_pool = []
+    # Create list of all possible strategies
+    player_types = []
+    for combination in product(ALL_ACTIONS, repeat=len(ALL_ACTIONS)):
+        strat = dict(zip(ALL_ACTIONS, combination))
+        player_types += [Player(strat, init) for init in ALL_ACTIONS]
 
-    # this is not what we want
-    for comb in list(itertools.product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
-        new_strat = dict(zip(ALL_ACTIONS, comb))
-        strategy_pool.append(new_strat)
+    # Create the population
+    population = []
+    for player_type in player_types:
+        population += [copy.deepcopy(player_type) for _ in range(N)]
 
-    player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
+    for index, player in enumerate(population):
+        player.index = index
 
-    players = []
-    for player in player_types:
-        players += [copy.deepcopy(player) for i in range(N)]
-
-    return players
+    return population
 
 def select_one(players: list) -> Player:
     scores = [p.score for p in players]
@@ -238,11 +217,6 @@ def strat_to_string(gene_dict: dict) -> str:
     actions = gene_dict.values()
     return ''.join(actions)
 
-def not_action(action):
-    """ Returns another action """
-    all_actions_copy = copy.deepcopy(ALL_ACTIONS)
-    all_actions_copy.remove(action)
-    return random.choice(all_actions_copy)
 
 def count_strategies_all(population):
     strats = [strat_to_string(player.strategy) for player in population]
