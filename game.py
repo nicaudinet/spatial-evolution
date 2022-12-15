@@ -41,41 +41,50 @@ def play_all(population, mistake, rounds):
 
 # Lattice play
 # ------------
-def play_neighbors(lat, i, j, mistake, rounds):
-    n = len(lat)
-    neighbor_inds = neighborhood(i, j, n, n)
-    # neighbors_and_me = neighbors + (i, j)
-    player = lat[i][j]
-    # Result of playing neighbas
-    for n_i, n_j in neighbor_inds:
-        neighba = lat[n_i][n_j]
-        player.score += play_game(player, neighba, mistake, rounds).score1
 
 def play_lattice(lat, mistake, rounds):    
     n = len(lat)
+
     for i in range(n):
         for j in range(n):
             lat[i][j].score = 0
-            play_neighbors(lat, i, j, mistake, rounds)
+
+    player_pairs = []
+    for i in range(n):
+        for j in range(n):
+            player = lat[i][j]
+            for ni, nj in neighborhood(i, j, n, n):
+                neighba = lat[ni][nj]
+                player_pairs.append((player, neighba))
+
+    with Pool(8) as pool:
+        play = partial(play_game, mistake=mistake, rounds=rounds)
+        chunksize = len(player_pairs) // 8
+        game_results = list(pool.map(play, player_pairs, chunksize))
+
+    for game_result in game_results:
+        for player_index, score in game_result:
+            px, py = player_index
+            lat[px][py].score += score
+
     return lat
 
+
 def init_square_lattice(N):
+    player_types = []
+    for combination in product(ALL_ACTIONS, repeat=len(ALL_ACTIONS)):
+        strat = dict(zip(ALL_ACTIONS, combination))
+        player_types += [Player(strat, init) for init in ALL_ACTIONS]
+
     lattice = []
-
-    strategy_pool = []
-
-    for comb in list(product(ALL_ACTIONS, repeat=len(ALL_ACTIONS))):
-        new_strat = dict(zip(ALL_ACTIONS, comb))
-        strategy_pool.append(new_strat)
-
-    player_types = [Player(strat, init) for strat in strategy_pool for init in ALL_ACTIONS]
-
     for i in range(N):
         lattice.append([])
-        for _ in range(N):
-            ind = np.random.choice(range(len(strategy_pool)))
-            strat = copy.deepcopy(player_types[ind])
-            lattice[i].append(strat)
+        for j in range(N):
+            ind = np.random.choice(range(len(player_types)))
+            player = copy.deepcopy(player_types[ind])
+            player.index = (i,j)
+            lattice[i].append(player)
+
     return lattice
 # ------------
 
@@ -101,10 +110,10 @@ def init_population(N: int) -> list[Player]:
 
 def select_one(players: list) -> Player:
     scores = [p.score for p in players]
-    selected = random.choices(players, weights=scores)[0]
-    # selected.score = 0
-
-    return selected
+    if sum(scores) == 0:
+        return random.choices(players)[0]
+    else:
+        return random.choices(players, weights=scores)[0]
 
 def select_all(population):
     """ Selects new population randomely from winners """
@@ -127,7 +136,20 @@ def select_lattice(population):
     return new_population
 
 def neighborhood(i, j, n, m):
-    return [((i + 1) % n, j), ((i - 1) % n, j), (i, (j + 1) % m), (i, (j - 1) % m)]
+
+    right = ((i + 1) % n, j)
+    left = ((i - 1) % n, j)
+    up = (i, (j + 1) % m)
+    down = (i, (j - 1) % m)
+
+    if i != 0 and j != 0:
+        return [down, right]
+    elif i != 0:
+        return [down, right, up]
+    elif j != 0:
+        return [down, right, left]
+    else:
+        return [down, right, left, up]
 
 def duplicate(player: Player, max_len) -> Player:
 
