@@ -3,14 +3,17 @@ from game import *
 import matplotlib.pyplot as plt
 
 def update(population, history, present_strategies, generation):
+    start_time = time.time()
     population = play_lattice(population, mistake, rounds)
     population = select_lattice(population)
     population = mutate_lattice(population, mut, max_len)
 
     strats, counts = count_strategies_lattice(population)
-    print_strategies(strats, counts)
+    #  print_strategies(strats, counts)
     history, present_strategies = generate_history(generation, history,
             present_strategies, strats,counts)
+    dt = time.time() - start_time
+    print(f"⏱️: {dt:2f} [s]")
     return population, history, present_strategies
 
 def get_color(colors, strategy):
@@ -45,11 +48,12 @@ def draw_legend(canvas, population, colors, font, cell_size):
     strats = strats[ind]
     counts = counts[ind]
     counter = 0
+    tile_size = 20
     width_rect = n * cell_size + 20
-    width_text = width_rect + cell_size + 10
+    width_text = width_rect + tile_size + 10
     for strat, count in zip(strats, counts):
-        height = counter * (cell_size + 10) + 20
-        rect = pygame.Rect(width_rect, height, cell_size, cell_size)
+        height = counter * (tile_size + 10) + 20
+        rect = pygame.Rect(width_rect, height, tile_size, tile_size)
         pygame.draw.rect(canvas, colors[strat], rect)
         display_text = str(count).rjust(5, " ") + " - " + strat
         text = font.render(display_text, False, (255,255,255))
@@ -71,7 +75,7 @@ FPS = 11
 
 CELL_SIZE = 10
 LEGEND_SIZE = 300
-FONT_SIZE = CELL_SIZE
+FONT_SIZE = 20
 WINDOW_HEIGHT = population_size * CELL_SIZE
 WINDOW_WIDTH = population_size * CELL_SIZE + LEGEND_SIZE
 
@@ -99,7 +103,7 @@ fig, ax = plt.subplots(figsize=(10, 6))
 generation = 0
 
 strats, counts = count_strategies_lattice(population)
-print_strategies(strats, counts)
+#  print_strategies(strats, counts)
 
 while not exit:
 
@@ -146,3 +150,5 @@ ax.set_ylim(0)
 
 plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 plt.savefig('strategy_history_lattice.png')
+
+print("🏁 Fin")
