@@ -7,6 +7,8 @@ import copy
 import itertools
 import matplotlib.pyplot as plt
 
+from lib.player import Player
+
 C = 'c' # Cooperate
 D = 'd' # Defect
 A = 'a' # Abstain
@@ -78,14 +80,6 @@ class History:
             a1 = actions[i]
             a2 = actions[i+1]
             print(" %s | %s " % (a1,a2))
-
-class Player:
-    def __init__(self, strategy, initial_state):
-        self.score = 0
-        self.memory_size = 1
-        self.strategy = strategy
-        self.initial_state = initial_state
-
 def play_turn(strat, history, mistake):
     """ Play a single turn for a single player with some probability of a
     mistake happening """
