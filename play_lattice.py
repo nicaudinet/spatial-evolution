@@ -9,7 +9,6 @@ def update(population, history, present_strategies, generation):
     population = mutate_lattice(population, mut, max_len)
 
     strats, counts = count_strategies_lattice(population)
-    #  print_strategies(strats, counts)
     history, present_strategies = generate_history(generation, history,
             present_strategies, strats,counts)
     dt = time.time() - start_time
@@ -103,7 +102,6 @@ fig, ax = plt.subplots(figsize=(10, 6))
 generation = 0
 
 strats, counts = count_strategies_lattice(population)
-#  print_strategies(strats, counts)
 
 while not exit:
 
