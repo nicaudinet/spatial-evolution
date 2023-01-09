@@ -62,11 +62,12 @@ def draw_legend(canvas, population, colors, font, cell_size):
 ######################################
 # Config
 
-population_size = 100
+population_size = 50
+max_generation = 2000
 
 rounds = 50
-mistake = 0.01
-mut = 0.01
+mistake = 0 # 0.01
+mut = 0 # 0.01
 
 max_len = 2
 
@@ -104,6 +105,8 @@ generation = 0
 strats, counts = count_strategies_lattice(population)
 
 while not exit:
+
+    exit = not (generation < max_generation)
 
     clock.tick(FPS)
 
