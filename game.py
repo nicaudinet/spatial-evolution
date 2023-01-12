@@ -70,17 +70,24 @@ def play_lattice(lat, mistake, rounds):
     return lat
 
 
-def init_square_lattice(N):
+def init_square_lattice(N, choose_random=True):
     player_types = []
     for combination in product(ALL_ACTIONS, repeat=len(ALL_ACTIONS)):
         strat = dict(zip(ALL_ACTIONS, combination))
         player_types += [Player(strat, init) for init in ALL_ACTIONS]
 
     lattice = []
+    last_ind = -1
+
     for i in range(N):
         lattice.append([])
         for j in range(N):
-            ind = np.random.choice(range(len(player_types)))
+            if choose_random:
+                ind = np.random.choice(range(len(player_types)))
+            else:
+                ind = (last_ind + 1) % len(player_types)
+                last_ind = ind
+            
             player = copy.deepcopy(player_types[ind])
             player.index = (i,j)
             lattice[i].append(player)
