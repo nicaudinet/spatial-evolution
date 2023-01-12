@@ -126,7 +126,7 @@ def select_all(population):
     """ Selects new population randomely from winners """
     new_population = [copy.deepcopy(select_one(population)) for _ in range(len(population))]
 
-    # reset indexes
+    # reset indices
     for i in range(len(new_population)):
         new_population[i].index = i
 
@@ -142,7 +142,12 @@ def select_lattice(population):
             neighbor_inds = neighborhood(i, j, n, n)
             neighbors_and_me_inds = neighbor_inds + [(i, j)]
             neighbors_and_me = list(map(lambda x: population[x[0]][x[1]], neighbors_and_me_inds))
-            new_population[i].append(select_one(neighbors_and_me))
+            new_population[i].append(copy.deepcopy(select_one(neighbors_and_me)))
+
+    # reset indices
+    for i in range(n):
+        for j in range(n):
+            new_population[i][j].index = (i, j)
 
     return new_population
 
