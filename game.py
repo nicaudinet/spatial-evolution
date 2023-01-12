@@ -124,7 +124,11 @@ def select_one(players: list) -> Player:
 
 def select_all(population):
     """ Selects new population randomely from winners """
-    new_population = [select_one(population) for _ in range(len(population))]
+    new_population = [copy.deepcopy(select_one(population)) for _ in range(len(population))]
+
+    # reset indexes
+    for i in range(len(new_population)):
+        new_population[i].index = i
 
     return new_population
 
