@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 # Config
 
 # game
-group_size = 10 # population size is group_size * 81
-generations = 100
+population_size = 25 # real populations size is population_size**2
+generations = 500
 
 rounds = 20
 mistake = 0.01
@@ -22,22 +22,23 @@ quasi_extict_limit = 10
 # Functions
 
 def play_game(trial, timestamp):
-    population = init_population(group_size)
+    population = init_square_lattice(population_size, choose_random=False)
 
-    present_strategies, history = count_strategies_all(population)
+    present_strategies, history = count_strategies_lattice(population)
     history = [[k] for k in history]
     present_strategies = list(present_strategies)
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for i in range(generations):
-        population = play_all(population, mistake, rounds)
-        population = select_all(population)
-        population = mutate_all(population, mut, max_len)
+        population = play_lattice(population, mistake, rounds)
+        population = select_lattice(population)
+        population = mutate_lattice(population, mut, max_len)
 
-        strats, counts = count_strategies_all(population)
+        strats, counts = count_strategies_lattice(population)
         history, present_strategies = generate_history(i, history,
                 present_strategies, strats,counts)
 
+    # sort history
     np_hist = np.array(history)
     np_hist_sum = np.sum(np_hist, axis=1)
     sorted_inds = np.argsort(-np_hist_sum)
@@ -54,7 +55,7 @@ def play_game(trial, timestamp):
     ax.set_ylim(0)
 
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig('data/'+timestamp+'strategy_history_all_'+str(trial)+'.png')
+    plt.savefig('data/'+timestamp+'strategy_history_lattice_'+str(trial)+'.png')
 
     filename = 'data/try_intermediate_'+str(trial)+'_'+timestamp
 
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     all_last_strats = []
     all_present_strategies = []
 
-    timestamp = str(int(time.time())) + '_all_mut_' + str(mut) + '_mist_' + str(mistake) + '_rounds_' + str(rounds)
+    timestamp = str(int(time.time())) + '_lattice_mut_' + str(mut) + '_mist_' + str(mistake) + '_rounds_' + str(rounds)
 
     for trial in range(trials):
         history, present_strategies = play_game(trial, timestamp)
@@ -106,6 +107,7 @@ if __name__ == '__main__':
 
     winner_strats_key, winner_strat_count = np.unique(flat_strats, return_counts=True)
     plt.bar(winner_strats_key, winner_strat_count)
+
 
     plt.savefig(('data/winner_stats_all_'+timestamp+'.png'))
 
