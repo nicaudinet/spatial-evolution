@@ -6,16 +6,16 @@ import matplotlib.pyplot as plt
 
 # game
 group_size = 10 # population size is group_size * 81
-generations = 50
+generations = 100
 
 rounds = 20
-mistake = 0.#.01
-mut = 0.#01
+mistake = 0.01
+mut = 0.01
 
 max_len = 1#4
 
 # trials / getting stats
-trials = 50
+trials = 10
 quasi_extict_limit = 10
 
 ######################################
@@ -54,7 +54,7 @@ def play_game(trial, timestamp):
     ax.set_ylim(0)
 
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.savefig('data/'+timestamp+'strategy_history_lattice_'+str(trial)+'.png')
+    plt.savefig('data/'+timestamp+'strategy_history_all_'+str(trial)+'.png')
 
     return history, present_strategies
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     all_last_strats = []
     all_present_strategies = []
 
-    timestamp = str(int(time.time())) + '_mut_' + str(mut) + '_mist_' + str(mistake) + '_rounds_' + str(rounds)
+    timestamp = str(int(time.time())) + '_all_mut_' + str(mut) + '_mist_' + str(mistake) + '_rounds_' + str(rounds)
 
     for trial in range(trials):
         history, present_strategies = play_game(trial, timestamp)
@@ -111,3 +111,5 @@ if __name__ == '__main__':
     }
 
     np.save((filename+'.npy'), results)
+
+    print(filename)

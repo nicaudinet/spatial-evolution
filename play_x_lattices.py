@@ -9,8 +9,8 @@ population_size = 25 # real populations size is population_size**2
 generations = 500
 
 rounds = 20
-mistake = 0.#01
-mut = 0.#01
+mistake = 0.01
+mut = 0.01
 
 max_len = 1#4
 
@@ -25,13 +25,11 @@ def play_game(trial, timestamp):
     population = init_square_lattice(population_size, choose_random=False)
 
     present_strategies, history = count_strategies_lattice(population)
-    print_strategies(present_strategies, history)
     history = [[k] for k in history]
     present_strategies = list(present_strategies)
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for i in range(generations):
-        print("Generation", i)
         population = play_lattice(population, mistake, rounds)
         population = select_lattice(population)
         population = mutate_lattice(population, mut, max_len)
@@ -69,7 +67,7 @@ if __name__ == '__main__':
     all_last_strats = []
     all_present_strategies = []
 
-    timestamp = str(int(time.time())) + '_mut_' + str(mut) + '_mist_' + str(mistake) + '_rounds_' + str(rounds)
+    timestamp = str(int(time.time())) + '_lattice_mut_' + str(mut) + '_mist_' + str(mistake) + '_rounds_' + str(rounds)
 
     for trial in range(trials):
         history, present_strategies = play_game(trial, timestamp)
@@ -115,3 +113,5 @@ if __name__ == '__main__':
     }
 
     np.save((filename+'.npy'), results)
+
+    print(filename)
