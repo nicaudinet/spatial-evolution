@@ -56,6 +56,15 @@ def play_game(trial, timestamp):
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.savefig('data/'+timestamp+'strategy_history_all_'+str(trial)+'.png')
 
+    filename = 'data/try_intermediate_'+str(trial)+'_'+timestamp
+
+    inter_results = {
+        'history': np_hist,
+        'present_strategies': present_strategies,
+    }
+
+    np.save((filename+'.npy'), inter_results)
+
     return history, present_strategies
 
 ######################################
